@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Order Matching Engine</title>
+    <style>
+        :root {
+         --primary-color: #3498db;
+         --buy-color: #2ecc71;
+         --sell-color: #e74c3c;
+         --bg-color: #f8f9fa;
+         --card-bg: #ffffff;
+         --text-dark: #2c3e50;
+         --text-light: #7f8c8d;
+         --border-color: #ecf0f1;
+         --success-color: #27ae60;
+         --error-color: #e74c3c;
+     }
+
+     * {
+         box-sizing: border-box;
+         margin: 0;
+         padding: 0;
+     }
+
+     body {
+         font-family: 'Roboto', sans-serif;
+         background-color: var(--bg-color);
+         color: var(--text-dark);
+         display: grid;
+         grid-template-columns: 1fr 300px;
+         height: 100vh;
+         overflow: hidden;
+         line-height: 1.5;
+     }
+
+     .main-panel {
+         padding: 20px;
+         display: flex;
+         flex-direction: column;
+         gap: 20px;
+         overflow-y: auto;
+     }
+
+     .trade-panel {
+         background-color: var(--card-bg);
+         border-left: 1px solid var(--border-color);
+         padding: 20px;
+         display: flex;
+         flex-direction: column;
+         overflow-y: auto;
+     }
+
+     .card {
+         background-color: var(--card-bg);
+         border-radius: 8px;
+         box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+         padding: 20px;
+     }
+
+     h1, h2 {
+         margin-bottom: 15px;
+         color: var(--text-dark);
+     }
+
+     h2 {
+         font-size: 1.2rem;
+         border-bottom: 1px solid var(--border-color);
+         padding-bottom: 10px;
+         margin-bottom: 15px;
+     }
+
+     .order-form {
+         display: flex;
+         flex-direction: column;
+         gap: 10px;
+     }
+
+     .order-input {
+         display: flex;
+         gap: 10px;
+     }
+
+     input[type="text"] {
+         flex: 1;
+         padding: 12px;
+         border: 1px solid var(--border-color);
+         border-radius: 4px;
+         font-size: 14px;
+         transition: border-color 0.2s;
+     }
+
+     input[type="text"]:focus {
+         outline: none;
+         border-color: var(--primary-color);
+     }
+
+     button {
+         background-color: var(--primary-color);
+         color: white;
+         border: none;
+         padding: 12px 20px;
+         border-radius: 4px;
+         cursor: pointer;
+         font-weight: 500;
+         transition: all 0.2s;
+     }
+
+     button:hover {
+         background-color: #2980b9;
+         transform: translateY(-1px);
+     }
+
+     button:active {
+         transform: translateY(0);
+     }
+
+     .order-book {
+         font-family: 'Roboto Mono', monospace;
+         background-color: #f5f6fa;
+         padding: 15px;
+         border-radius: 4px;
+         white-space: pre;
+         overflow-x: auto;
+     }
+
+     /* Enhanced Trade History Styles */
+     .trade-list {
+         display: flex;
+         flex-direction: column;
+         gap: 10px;
+     }
+
+     .trade-item {
+         font-family: 'Roboto Mono', monospace;
+         padding: 12px;
+         background-color: var(--card-bg);
+         border-radius: 6px;
+         box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+         transition: transform 0.2s, box-shadow 0.2s;
+     }
+
+     .trade-item:hover {
+         transform: translateY(-2px);
+         box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+     }
+
+     .trade-header {
+         display: flex;
+         justify-content: space-between;
+         align-items: center;
+         margin-bottom: 6px;
+     }
+
+     .trade-ids {
+         display: flex;
+         align-items: center;
+         gap: 12px;
+     }
+
+     .trade-buy-id {
+         color: var(--text-dark);
+         font-weight: 500;
+     }
+
+     .trade-sell-id {
+         color: var(--text-dark);
+         font-weight: 500;
+     }
+
+     .trade-time {
+         color: var(--text-light);
+         font-size: 0.75rem;
+         letter-spacing: 0.5px;
+     }
+
+     .trade-details {
+         display: flex;
+         align-items: center;
+         gap: 6px;
+     }
+
+     .trade-quantity {
+         color: var(--text-dark);
+     }
+
+     .trade-price {
+         color: var(--buy-color);
+         font-weight: bold;
+     }
+
+     .trade-divider {
+         color: var(--text-light);
+         opacity: 0.5;
+     }
+
+     #orderStatus {
+         margin-top: 5px;
+         font-size: 0.9rem;
+         color: var(--success-color);
+         transition: opacity 0.3s;
+     }
+
+     .error-message {
+         color: var(--error-color) !important;
+     }
+
+     @media (max-width: 768px) {
+         body {
+             grid-template-columns: 1fr;
+         }
+         .trade-panel {
+             display: none;
+         }
+     }
+    </style>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500&family=Roboto+Mono&display=swap" rel="stylesheet">
+</head>
+<body>
+<div class="main-panel">
+    <div class="card">
+        <h1>Order Matching Engine</h1>
+        <div class="order-form">
+            <div class="order-input">
+                <input
+                        type="text"
+                        id="commandInput"
+                        placeholder="BUY 100 @10.50 LIMIT"
+                        title="[BUY/SELL] [QTY] @[PRICE] [LIMIT/MARKET]">
+                <button onclick="submitOrder()">Submit</button>
+            </div>
+            <div id="orderStatus"></div> <!-- ✅ Order message shown here -->
+        </div>
+    </div>
+
+    <div class="card">
+        <h2>Order Book</h2>
+        <div id="orderBook" class="order-book">Loading order book...</div>
+    </div>
+</div>
+
+<div class="trade-panel">
+    <div class="card">
+        <h2>Trade History</h2>
+        <div id="tradeLog" class="trade-list">
+            <!-- Trades will appear here -->
+        </div>
+    </div>
+</div>
+
+<script>
+    const commandInput = document.getElementById('commandInput');
+    const orderBook = document.getElementById('orderBook');
+    const tradeLog = document.getElementById('tradeLog');
+    const orderStatus = document.getElementById('orderStatus');
+
+    async function submitOrder() {
+        const input = commandInput.value.trim();
+        if (!input) return;
+
+        try {
+            const order = parseOrderInput(input);
+            const response = await fetch('/api/orders', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(order)
+            });
+
+            const message = await response.text(); // 👈 Get server response text
+
+            if (!response.ok) {
+                throw new Error(message);
+            }
+
+            orderStatus.textContent = message || "ORDER RECEIVED ✅";
+            orderStatus.style.color = "green";
+
+            commandInput.value = ''; // Clear input after success
+            fetchOrderBook();
+            fetchTradeHistory();
+        } catch (error) {
+            orderStatus.textContent = error.message;
+            orderStatus.style.color = "red";
+            console.error('Order submission error:', error);
+        }
+    }
+
+    function parseOrderInput(input) {
+        const parts = input.split(/\s+/);
+        if (parts.length < 3) {
+            throw new Error('Invalid order format');
+        }
+
+        return {
+            side: parts[0].toUpperCase(),
+            quantity: parseInt(parts[1]),
+            price: parseFloat(parts[2].startsWith('@') ? parts[2].substring(1) : parts[2]),
+            type: parts.length > 3 ? parts[3].toUpperCase() : 'LIMIT'
+        };
+    }
+
+    async function fetchOrderBook() {
+        try {
+            const response = await fetch('/api/orderbook');
+            if (!response.ok) throw new Error('Failed to load order book');
+            const data = await response.text();
+            orderBook.innerHTML = data.replace(/\n/g, '<br>');
+        } catch (error) {
+            orderBook.innerHTML = 'Error loading order book';
+            console.error('Order book error:', error);
+        }
+    }
+
+async function fetchTradeHistory() {
+    try {
+        const response = await fetch('/api/trades');
+        if (!response.ok) throw new Error('Network response was not ok');
+
+        const trades = await response.json();
+        const tradeLog = document.getElementById('tradeLog');
+
+        tradeLog.innerHTML = Array.isArray(trades) && trades.length > 0
+            ? trades.map(trade => {
+                const now = new Date();
+                const tradeTime = now.toLocaleTimeString('en-US', {
+                    hour12: false,
+                    hour: '2-digit',
+                    minute: '2-digit',
+                    second: '2-digit'
+                });
+
+                return `
+                    <div class="trade-item">
+                        <div class="trade-header">
+                            <div class="trade-ids">
+                                <span class="trade-buy-id">BUY(${trade.buyOrder.orderId})</span>
+                                <span class="trade-divider">-</span>
+                                <span class="trade-sell-id">SELL(${trade.sellOrder.orderId})</span>
+                            </div>
+                            <span class="trade-time">${tradeTime}</span>
+                        </div>
+                        <div class="trade-details">
+                            <span class="trade-quantity">${trade.quantity} @</span>
+                            <span class="trade-price">${trade.price.toFixed(2)}</span>
+                        </div>
+                    </div>
+                `;
+            }).join('')
+            : '<div class="trade-item">No trades yet</div>';
+
+    } catch (error) {
+        console.error('Failed to load trade history:', error);
+        document.getElementById('tradeLog').innerHTML = `
+            <div class="trade-item error-message">
+                Error loading trades: ${error.message}
+            </div>
+        `;
+    }
+}
+    function formatTime(timestamp) {
+        const date = new Date(timestamp);
+        return date.toLocaleTimeString();
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+        fetchOrderBook();
+        fetchTradeHistory();
+
+        commandInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') submitOrder();
+        });
+    });
+</script>
+</body>
+</html>
